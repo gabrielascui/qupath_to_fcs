@@ -1,0 +1,13 @@
+name: qupath_to_fcs
+title:
+username:
+account: gabrielascui
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 771081
+bundleId: 6590644
+url: https://gabrielascui.shinyapps.io/qupath_to_fcs/
+when: 1670197665.95919
+lastSyncTime: 1670197665.9592
+asMultiple: FALSE
+asStatic: FALSE

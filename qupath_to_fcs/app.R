@@ -5,11 +5,11 @@
 
 ###### QuPath TXT to CSV files ######
 library(shiny)
-library('flowCore')
-library('Biobase')
-library('data.table')
-library('ggplot2')
-library('DT')
+library(flowCore)
+library(Biobase)
+library(data.table)
+library(ggplot2)
+library(DT)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    # Application title
@@ -22,7 +22,7 @@ ui <- fluidPage(
       sidebarPanel(
         helpText("Hello everyone, this is a new version of this app, please let me know if you have any issues in the issues tab in github, or at gascui@lji.org "),
         helpText("Upload your TXT measurements files from QuPath 0.4.0"),
-        helpText("Maximum file size, 300 MB"),
+        helpText("Maximum file size, 100 MB"),
         fileInput("file1", "Choose QuPath TXT File",
                   accept = c(
                     "text/txt",
@@ -67,7 +67,7 @@ ui <- fluidPage(
       )
    )
 )
-options(shiny.maxRequestSize=300*1024^2) # limit of upload file size, set to 300 Mb if needed.
+options(shiny.maxRequestSize=100*1024^2) # limit of upload file size, set to 300 Mb if needed.
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   ## Slider Value input to control columns
@@ -164,7 +164,7 @@ server <- function(input, output) {
       return(NULL)
     data_qupath <- fread(inFile$datapath, header = TRUE, check.names = FALSE)
     data_qupath <- data_qupath[,5:length(data_qupath)]
-    coords <- colnames(as.data.frame(qupath))[grep("Cell\\:(.*)mean", colnames(as.data.frame(qupath)))]
+    coords <- colnames(as.data.frame(data_qupath))[grep("Cell\\:(.*)mean", colnames(as.data.frame(data_qupath)))]
     ggplot(data = as.data.frame(data_qupath), aes(x = .data[[coords[5]]], 
                                                   y = .data[[coords[3]]])) + geom_point()
   })
