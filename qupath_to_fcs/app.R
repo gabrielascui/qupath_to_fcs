@@ -4,7 +4,7 @@
 # Based on https://github.com/sydneycytometry/CSV-to-FCS/blob/master/CSV-to-FCS%20v2.0.R
 # Using shiny 1.7.4 with shiny modules
 
-##-------------------------------------------------- libraries
+##------------------------------------------------------ libraries
 library(shiny)
 library(flowCore)
 library(Biobase)
@@ -12,25 +12,25 @@ library(data.table)
 library(ggplot2)
 library(DT)
 
-##-------------------------------------------------- shiny modules
+##------------------------------------------------------ shiny modules
 # automatically sourced
 # R/downloadCSV.R
 # R/downloadFCS.R
 # R/loadMeasurements.R
 # R/plots.R
 
-##-------------------------------------------------- config
+##------------------------------------------------------ config
 # limit of upload file size, set to 300 Mb if needed.
 options(shiny.maxRequestSize=100*1024^2)
 
-##--------------------------------------------------- APP UI
+##------------------------------------------------------ APP UI
 ui <- fluidPage(
-  ##------------------------------------------------ Title panel
+  ##--------------------------------------------------- Title panel
   titlePanel("QuPath Cell Segmentation Measurements to .fcs file"),
   img(src='qupathlogo.png', align = "right", width  = "50px",height = "50px"),
   img(src='ljilogo.jpg', align = "right", width  = "50px",height = "50px"),
-  helpText("Version 0.5.5 - Gabriel Ascui"),
-  ##------------------------------------------------ Side panel
+  helpText("Version 0.5.7 - Gabriel Ascui"),
+  ##--------------------------------------------------- Side panel
   sidebarLayout(
     sidebarPanel(
       helpText("Hello everyone, this is a new version of this app, please let me know if you have any issues in the issues tab in github, or at gascui@lji.org "),
@@ -43,20 +43,23 @@ ui <- fluidPage(
                   ".txt")
       ),
       hr(),
-      ##--------------------------------------------- slider in the sidebar
+      ##----------------------------------------------- slider in the sidebar
       helpText("To generate .fcs file, eliminate all columns with names"),
       sliderInput("slider1", label = h3("Columns to be discarted"), 
                   min = 0, 
                   max = 70, # needs to be modified to max length(data_qupath)
                   value = 5), 
-      ##--------------------------------------------- download buttons 
+      ##----------------------------------------------- download buttons 
       downloadButton("data_download", label = "Download CSV"),
       hr(),
       downloadButton("downloadFCS", label = "Download FCS"), 
       hr(),
-      uiOutput("link")
+      uiOutput("link"),
+      hr(),
+      varSelectInput("plot_var_x","Select Graph x-axis", data = NULL),
+      varSelectInput("plot_var_y","Select Graph y-axis", data = NULL)
     ),
-    ##---------------------------------------------- Main Panel
+    ##-------------------------------------------------- Main Panel
     mainPanel(
       tabsetPanel(
         id = 'dataset_name',
@@ -72,9 +75,8 @@ ui <- fluidPage(
                  p("this is an example of the fcs file"),
                  hr(),
                  column(2, align="right",
-                        plotOutput(outputId = "graph1", width  = "300px",height = "200px"),  # Check these
-                        plotOutput(outputId = "graph2", width  = "300px",height = "200px"),  # check
-                        plotOutput(outputId = "graph3", width  = "300px",height = "200px")  # check
+                        plotOutput(outputId = "graph1", width  = "300px",height = "300px"),
+                        plotOutput(outputId = "graph2", width  = "300px",height = "300px")
                  )
         )
       )
@@ -82,15 +84,15 @@ ui <- fluidPage(
   )
 )
 
-##--------------------------------------------------- APP Server
+##------------------------------------------------------- APP Server
 server <- function(input, output, session) {
-  ##------------------------------------------------- Slider reactive value
+  ##----------------------------------------------------- Slider reactive value
   sliderValues <- reactive({
     input$slider1
   })
-  ##------------------------------------------------- Slider output
+  ##----------------------------------------------------- Slider output
   output$value <- renderPrint({ input$slider1 })
-  ##------------------------------------------------- measurement table filter/update reactivity
+  ##----------------------------------------------------- measurement table filter/update reactivity
   tableInput <- reactive({
     req(input$file1)
     # Determine the original encoding of the file and convert to UTF-8
@@ -101,11 +103,11 @@ server <- function(input, output, session) {
     data_qupath <- as.data.frame(data_qupath)
     
   })
-  ##------------------------------------------------- Preview of TXT measurements table from original file
+  ##----------------------------------------------------- Preview of TXT measurements table from original file
   output$txt_data <- renderDataTable({
     tableInput()
   })
-  ##------------------------------------------------- FCS file reactivity
+  ##----------------------------------------------------- FCS file reactivity
   fcsInput <- reactive({
     inFile <- input$file1
     if(is.null(input$file1)) return (NULL) else {
@@ -123,11 +125,11 @@ server <- function(input, output, session) {
       data_subset.ff
       }
   })
-  ##------------------------------------------------ Preview of FCS variables to be inserted
+  ##------------------------------------------------------ Preview of FCS variables to be inserted
   output$fcs_table <- renderDataTable({
     head(fcsInput())
   })
-  ##------------------------------------------------- Download handler for CSV file
+  ##------------------------------------------------------ Download handler for CSV file
   output$data_download <- downloadHandler(
     filename = function() {
       paste("measurements_", Sys.Date(),".csv", sep = "") 
@@ -136,7 +138,7 @@ server <- function(input, output, session) {
       write.csv(tableInput(), file, row.names = FALSE)
     }
   )
-  ##------------------------------------------------- Download Server for FCS file
+  ##------------------------------------------------------ Download Server for FCS file
   output$downloadFCS <- downloadHandler(
     filename = function() {
       paste("measurements_", Sys.Date(),".fcs", sep = "") 
@@ -145,6 +147,25 @@ server <- function(input, output, session) {
       write.FCS(fcsInput(), file)
       }
   )
+  ##------------------------------------------------------ update selected columns
+  observeEvent(input$file1, {
+    data_qupath <- as.data.frame(tableInput())
+    col_n <- names(data_qupath)
+    # update choices
+    updateSelectInput(session, "plot_var_x", choices = col_n)
+    updateSelectInput(session, "plot_var_y", choices = col_n)
+  })
+  ##----------------------------------------------------- plots
+  ##----------------------------------------------------- plot 1 centroids 
+  output$graph1 <- renderPlot({
+    ggplot(data = as.data.frame(tableInput()), aes(x = `Centroid X µm`, 
+                                                   y = `Centroid Y µm`)) + geom_point()
+  })
+  ##---------------------------------------------------- plot 2
+  output$graph2 <- renderPlot({
+    ggplot(data = as.data.frame(tableInput()), aes_string(x = input$plot_var_x, 
+                                                  y = input$plot_var_y)) + geom_point()
+  })
   ##------------------------------------------------- github hyperlink
   url <- a("GitHub", href="https://github.com/gabrielascui/qupath_to_fcs")
   output$link <- renderUI({
