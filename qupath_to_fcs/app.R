@@ -11,6 +11,7 @@ library(Biobase)
 library(data.table)
 library(ggplot2)
 library(DT)
+library(stringi)
 
 ##------------------------------------------------------ shiny modules
 # automatically sourced
@@ -111,7 +112,12 @@ server <- function(input, output, session) {
   fcsInput <- reactive({
     inFile <- input$file1
     if(is.null(input$file1)) return (NULL) else {
-      data_qupath <- fread(inFile$datapath, header = TRUE, check.names = FALSE)
+       # Determine the original encoding of the file and convert to UTF-8
+      encoding <- readr::guess_encoding(inFile$datapath)$encoding[1]
+      file_contents <- readLines(inFile$datapath, encoding = encoding)
+      file_contents <- iconv(file_contents, from = encoding, to = "UTF-8")
+
+      data_qupath <- fread(text = file_contents, header = TRUE, check.names = FALSE, encoding = "UTF-8")
       data_qupath <- data_qupath[,sliderValues():length(data_qupath)]
       data_qupath <- as.data.frame(data_qupath)
       ## rename centroid parameters 
